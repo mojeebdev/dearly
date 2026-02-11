@@ -4,8 +4,7 @@ import { motion } from "framer-motion";
 import { Heart, Calendar, Sparkles } from "lucide-react";
 import ShareButtons from "./ShareButtons";
 import Confetti from "./Confetti";
-import { getOccasionEmoji, getOccasionGradient } from "@/lib/utils";
-
+import { getOccasionEmoji, getOccasionGradient } from "../lib/utils";
 interface Greeting {
   id: string;
   recipient_name: string;

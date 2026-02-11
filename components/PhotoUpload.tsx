@@ -1,5 +1,4 @@
 "use client";
-
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
@@ -20,7 +19,7 @@ export default function PhotoUpload({ onUpload, currentUrl }: PhotoUploadProps) 
       const file = acceptedFiles[0];
       if (!file) return;
 
-      // Validate
+      // Validate size
       if (file.size > 5 * 1024 * 1024) {
         setError("Photo must be under 5MB");
         return;
@@ -46,7 +45,7 @@ export default function PhotoUpload({ onUpload, currentUrl }: PhotoUploadProps) 
 
         const { url } = await res.json();
         onUpload(url);
-      } catch {
+      } catch (err) {
         setError("Upload failed. Please try again.");
         setPreview(null);
       } finally {
@@ -108,14 +107,14 @@ export default function PhotoUpload({ onUpload, currentUrl }: PhotoUploadProps) 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer
-                       transition-all duration-300
-                       ${
-                         isDragActive
+            {...getRootProps({
+              className: `border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer
+                         transition-all duration-300
+                         ${isDragActive
                            ? "border-guardian-gold bg-guardian-gold/5 scale-[1.02]"
                            : "border-guardian-goldLight/50 hover:border-guardian-gold/50 hover:bg-guardian-gold/5"
-                       }`}
+                         }`
+            })}
           >
             <input {...getInputProps()} />
             <Upload

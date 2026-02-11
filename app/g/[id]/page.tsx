@@ -1,20 +1,16 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase"; // Use your existing central client
 import GreetingPage from "@/components/GreetingPage";
 import { getOccasionEmoji } from "@/lib/utils";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 interface PageProps {
-  params: Promise<{ id: string }>; // Updated to Promise
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params; // Await the ID
+  // 1. Await the Promise to get the ID
+  const { id } = await params; 
   
   const { data: greeting } = await supabase
     .from("greetings")
@@ -28,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const emoji = getOccasionEmoji(greeting.occasion);
   const title = `${emoji} A Special Message for ${greeting.recipient_name}`;
-  const description = `${greeting.sender_name} created a beautiful personal greeting for ${greeting.recipient_name}. Open to read it on Dearly.`;
+  const description = `${greeting.sender_name} created a beautiful personal greeting.`;
   const url = `${process.env.NEXT_PUBLIC_BASE_URL}/g/${id}`;
 
   return {
@@ -38,22 +34,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       url,
-      type: "website",
-      siteName: "Dearly",
-      images: greeting.photo_url
-        ? [{ url: greeting.photo_url, width: 1200, height: 630 }]
-        : [{ url: `${process.env.NEXT_PUBLIC_BASE_URL}/og-default.png`, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
+      images: greeting.photo_url ? [{ url: greeting.photo_url }] : [],
     },
   };
 }
 
 export default async function GreetingLandingPage({ params }: PageProps) {
-  const { id } = await params; // Await the ID
+  // 2. Await the Promise here as well
+  const { id } = await params;
 
   const { data: greeting, error } = await supabase
     .from("greetings")
@@ -65,12 +53,18 @@ export default async function GreetingLandingPage({ params }: PageProps) {
     notFound();
   }
 
-  // Increment view count (fire-and-forget)
+  // Fire-and-forget view count update
+  // Note: Ensure 'view_count' column exists in your Supabase table!
   supabase
     .from("greetings")
     .update({ view_count: (greeting.view_count || 0) + 1 })
     .eq("id", id)
     .then();
 
-  return <GreetingPage greeting={greeting} />;
+  return (
+    <>
+      <GreetingPage greeting={greeting} />
+      {/* Share to social functionality is handled within GreetingPage or here */}
+    </>
+  );
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,12 +11,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No food item (file) provided" }, { status: 400 });
     }
 
-    
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json({ error: "File is too heavy! Limit is 5MB." }, { status: 400 });
     }
 
-    
     const allowedTypes = [
       "image/jpeg", 
       "image/png", 
@@ -32,14 +30,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid file type. Please use a common image format." }, { status: 400 });
     }
 
-    
     const ext = file.name.split(".").pop() || "jpg";
     const fileName = `${nanoid(12)}.${ext}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    
-    const { error: uploadError } = await supabaseAdmin.storage
+    // Fix: Changed supabaseAdmin to supabase
+    const { error: uploadError } = await supabase.storage
       .from("photos")
       .upload(fileName, buffer, {
         contentType: file.type,
@@ -47,7 +44,6 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) {
-      // 🚨 Branded log
       console.error("Dearly error (Upload):", uploadError);
       return NextResponse.json(
         { error: "The fridge is full! Upload failed." },
@@ -55,10 +51,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    
+    // Fix: Changed supabaseAdmin to supabase
     const {
       data: { publicUrl },
-    } = supabaseAdmin.storage.from("photos").getPublicUrl(fileName);
+    } = supabase.storage.from("photos").getPublicUrl(fileName);
 
     return NextResponse.json({ url: publicUrl });
   } catch (err) {
