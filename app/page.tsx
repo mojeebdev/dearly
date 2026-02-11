@@ -63,6 +63,7 @@ export default function HomePage() {
         >
           Mojeeb
         </a> · {new Date().getFullYear()}
+        <p className="text-sm text-guardian-muted/60">  dearly.icu — <em>I see you</em> ✨</p>
       </footer>
     </div>
   );
