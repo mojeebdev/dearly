@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -25,42 +25,53 @@ export default function ShareButtons({
 }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const shareText = `I made something special for ${recipientName} ✨`;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Safety check: if no URL, use the production domain
+  const finalUrl = url || "https://dearly.icu";
+  const shareText = `I made something special for ${recipientName} on Dearly ✨`;
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(finalUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy link", err);
+    }
   };
 
   const shareWhatsApp = () => {
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(shareText + "\n" + url)}`,
-      "_blank"
-    );
+    const text = `${shareText}\n${finalUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const shareTwitter = () => {
     window.open(
-      `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`,
+      `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(finalUrl)}`,
       "_blank"
     );
   };
 
   const nativeShare = async () => {
-    if (navigator.share) {
+    if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
           title: `A Special Message for ${recipientName}`,
           text: shareText,
-          url,
+          url: finalUrl,
         });
-      } catch {
+      } catch (err) {
         // User cancelled
       }
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <>
@@ -121,14 +132,14 @@ export default function ShareButtons({
           QR
         </motion.button>
 
-        {/* Native Share (mobile) */}
-        {"share" in navigator && (
+        {/* Native Share */}
+        {mounted && typeof navigator !== "undefined" && !!navigator.share && (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={nativeShare}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl
-                       guardian-button text-sm"
+                       bg-guardian-gold text-white hover:opacity-90 text-sm shadow-md"
           >
             <Share2 className="w-4 h-4" />
             Share
@@ -152,27 +163,27 @@ export default function ShareButtons({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="guardian-card p-8 text-center max-w-xs"
+              className="guardian-card p-8 text-center max-w-xs relative bg-white rounded-3xl"
             >
               <button
                 onClick={() => setShowQR(false)}
-                className="absolute top-3 right-3 p-1 hover:bg-guardian-goldLight/20 rounded-full"
+                className="absolute top-3 right-3 p-1 hover:bg-gray-100 rounded-full"
               >
                 <X className="w-4 h-4" />
               </button>
               <p className="text-sm text-guardian-muted mb-4">
                 Scan to open the greeting
               </p>
-              <div className="inline-block p-4 bg-white rounded-2xl">
+              <div className="inline-block p-4 bg-white rounded-2xl border border-gray-100 shadow-inner">
                 <QRCodeSVG
-                  value={url}
+                  value={finalUrl}
                   size={180}
                   fgColor="#2C1810"
                   bgColor="#FFFFFF"
                 />
               </div>
               <p className="text-xs text-guardian-muted/60 mt-4">
-                For {recipientName}
+                A Dearly original for {recipientName}
               </p>
             </motion.div>
           </motion.div>

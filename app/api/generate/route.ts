@@ -1,74 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { generateMessage } from "@/lib/gemini";
-// Keeping your specific path and name
-import { supabase } from "../../../lib/supabase"; 
+import { streamMessage } from "@/lib/gemini"; 
+import { supabase } from "../../../lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const { recipientName, senderName, relationship, occasion, traits, hobbies, tone, photoUrl } = body;
 
-    const {
-      recipientName,
-      senderName,
-      relationship,
-      occasion,
-      traits,
-      hobbies,
-      tone,
-      photoUrl,
-    } = body;
-
-    // Validate required fields for our Guardians
     if (!recipientName || !senderName || !traits) {
-      return NextResponse.json(
-        { error: "Missing required fields for Dearly greeting" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Dearly | Missing required fields" }, { status: 400 });
     }
 
-    
-    const message = await generateMessage({
+    const id = nanoid(8);
+    const stream = await streamMessage({
       recipientName,
       senderName,
       relationship: relationship || "someone special",
       occasion: occasion || "a special moment",
       traits,
       hobbies: hobbies || "their unique passions",
-      tone: tone || "heartfelt",
+      tone: tone || "dearly",
     });
 
-    
-    const id = nanoid(8);
+    const encoder = new TextEncoder();
+    const customStream = new ReadableStream({
+      async start(controller) {
+        let fullMessage = "";
+        
+        
+        controller.enqueue(encoder.encode(JSON.stringify({ id }) + "\n"));
 
-    const { error: dbError } = await supabase.from("greetings").insert({
-      id,
-      recipient_name: recipientName,
-      sender_name: senderName,
-      relationship,
-      occasion,
-      traits,
-      hobbies,
-      tone,
-      message,
-      photo_url: photoUrl || null,
-      created_at: new Date().toISOString(),
+        for await (const chunk of stream) {
+          const chunkText = chunk.text();
+          fullMessage += chunkText;
+          controller.enqueue(encoder.encode(chunkText));
+        }
+
+        
+        supabase.from("greetings").insert({
+          id,
+          recipient_name: recipientName,
+          sender_name: senderName,
+          relationship,
+          occasion,
+          traits,
+          hobbies,
+          tone,
+          message: fullMessage,
+          photo_url: photoUrl || null,
+          created_at: new Date().toISOString(),
+        }).then(({ error }) => {
+          if (error) console.error("Dearly Background Error:", error);
+        });
+
+        controller.close();
+      },
     });
 
-    if (dbError) {
-      console.error("Dearly DB Error:", dbError);
-      return NextResponse.json(
-        { error: "Failed to save your Dearly greeting" },
-        { status: 500 }
-      );
-    }
+    return new Response(customStream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
 
-    return NextResponse.json({ id, message });
   } catch (err) {
-    console.error("Dearly Gemini Generate error:", err);
-    return NextResponse.json(
-      { error: "Internal server error in Dearly Gemini engine" },
-      { status: 500 }
-    );
+    console.error("Dearly Generate error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -27,10 +27,10 @@ export default function GreetingPage({ greeting }: { greeting: Greeting }) {
     created_at,
   } = greeting;
 
-  const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/g/${id}`;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://dearly.icu";
+  const shareUrl = `${baseUrl}/g/${id}`;
   const emoji = getOccasionEmoji(occasion);
   const gradient = getOccasionGradient(occasion);
-
   const formattedDate = new Date(created_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",

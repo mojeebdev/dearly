@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize the Gemini client with your private key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 interface GenerateParams {
@@ -13,7 +12,7 @@ interface GenerateParams {
   tone: string;
 }
 
-export async function generateMessage(params: GenerateParams): Promise<string> {
+export async function streamMessage(params: GenerateParams) {
   const {
     recipientName,
     senderName,
@@ -24,7 +23,6 @@ export async function generateMessage(params: GenerateParams): Promise<string> {
     tone,
   } = params;
 
-  // Using gemini-2.0-flash for high-speed, free-tier generation
   const model = genAI.getGenerativeModel({ 
     model: "gemini-2.0-flash",
     generationConfig: {
@@ -42,7 +40,6 @@ export async function generateMessage(params: GenerateParams): Promise<string> {
   };
 
   const prompt = `You are a world-class creative writer specializing in personal, bespoke messages.
-
 Write a ${occasion} message for **${recipientName}** from **${senderName}**.
 
 CONTEXT:
@@ -54,22 +51,12 @@ CONTEXT:
 RULES:
 1. Address ${recipientName} directly and personally.
 2. Weave in specific details about their traits and hobbies naturally.
-3. Keep it between 120-200 words — impactful, not bloated.
-4. Use elegant formatting: short paragraphs, maybe one poetic line.
+3. Keep it between 120-200 words.
+4. Use elegant formatting.
 5. End with a warm sign-off from ${senderName}.
-6. Do NOT use generic filler. Every sentence must feel personal.
-7. Do NOT include a subject line or title — just the message body.`;
+6. Just the message body.`;
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    // Return text or a fallback if the result is empty
-    return text.trim() || "A dearly message for you.";
-  } catch (error) {
-    console.error("Dearly Generation Error:", error);
-    // Return a warm fallback message so the user isn't left with an error screen
-    return "The stars couldn't align for this message, but you are truly loved.";
-  }
+  
+  const result = await model.generateContentStream(prompt);
+  return result.stream;
 }
