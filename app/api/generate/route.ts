@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { streamMessage } from "@/lib/gemini"; 
-import { supabase } from "@/lib/supabase";
+import { streamMessage } from "../../../lib/gemini"; 
+import { supabase } from "../../../lib/supabase";
 
 // Standard Node.js runtime for stability (allows for 30s+ processing)
 export async function POST(req: NextRequest) {
