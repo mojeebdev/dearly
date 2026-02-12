@@ -1,90 +1,63 @@
-import { NextRequest, NextResponse } from "next/server";
-import { nanoid } from "nanoid";
-import { streamMessage } from "@/lib/gemini"; 
-import { supabase } from "../../../lib/supabase";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const runtime = "edge"; // Recommended for streaming
+// Initialize the Google Generative AI with your API Key
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { 
-      recipientName, 
-      senderName, 
-      relationship, 
-      occasion, 
-      traits, 
-      hobbies, 
-      tone, 
-      photoUrl 
-    } = body;
+interface GenerateParams {
+  recipientName: string;
+  senderName: string;
+  relationship: string;
+  occasion: string;
+  traits: string;
+  hobbies: string;
+  tone: string;
+}
 
-    
-    if (!recipientName || !senderName || !occasion) {
-      return NextResponse.json({ error: "Dearly | Missing required fields" }, { status: 400 });
+export async function streamMessage(params: GenerateParams) {
+  const {
+    recipientName,
+    senderName,
+    relationship,
+    occasion,
+    traits,
+    hobbies,
+    tone,
+  } = params;
+
+  
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-flash",
+    generationConfig: {
+      temperature: 1.0,
+      topP: 0.95,
+      maxOutputTokens: 1000,
     }
+  });
 
-    const id = nanoid(8);
-    const stream = await streamMessage({
-      recipientName,
-      senderName,
-      relationship: relationship || "someone special",
-      occasion: occasion,
-      traits: traits || "wonderful",
-      hobbies: hobbies || "life",
-      tone: tone || "dearly",
-    });
+  const toneGuide: Record<string, string> = {
+    dearly: "deeply sincere, warm, emotionally moving — like a handwritten letter",
+    romantic: "poetic, intimate, tender — like a love letter under moonlight",
+    funny: "witty, playful, affectionate humor — like a best friend's toast",
+    inspirational: "uplifting, empowering, celebratory — like a mentor's speech",
+  };
 
-    const encoder = new TextEncoder();
-    
-    const customStream = new ReadableStream({
-      async start(controller) {
-        let fullMessage = "";
-        
-        
-        controller.enqueue(encoder.encode(JSON.stringify({ id }) + "\n"));
+  const prompt = `You are a world-class creative writer specializing in personal, bespoke messages.
+Write a ${occasion} message for **${recipientName}** from **${senderName}**.
 
-        try {
-          
-          for await (const chunk of stream) {
-            const chunkText = chunk.text();
-            fullMessage += chunkText;
-            controller.enqueue(encoder.encode(chunkText));
-          }
+CONTEXT:
+- Relationship: ${relationship}
+- ${recipientName}'s traits: ${traits}
+- ${recipientName}'s hobbies/interests: ${hobbies}
+- Desired tone: ${tone} — ${toneGuide[tone] || toneGuide.dearly}
 
-          
-          const { error: sbError } = await supabase.from("greetings").insert({
-            id: id,
-            recipient_name: recipientName,
-            sender_name: senderName,
-            relationship: relationship || "Special Person",
-            occasion: occasion,
-            traits: traits || "Kind",
-            hobbies: hobbies || "",
-            tone: tone || "sincere",
-            message: fullMessage, 
-            photo_url: photoUrl || null,
-            created_at: new Date().toISOString(),
-          });
+RULES:
+1. Address ${recipientName} directly and personally.
+2. Weave in specific details about their traits and hobbies naturally.
+3. Keep it between 120-200 words.
+4. Use elegant formatting.
+5. End with a warm sign-off from ${senderName}.
+6. Just the message body.`;
 
-          if (sbError) {
-            console.error("Dearly DB Error:", sbError.message);
-          }
-
-        } catch (streamErr) {
-          console.error("Streaming error:", streamErr);
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(customStream, {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
-
-  } catch (err) {
-    console.error("Dearly Generate error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
+  const result = await model.generateContentStream(prompt);
+  return result.stream;
 }
