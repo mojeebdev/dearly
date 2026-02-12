@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { recipientName, senderName, relationship, occasion, traits, hobbies, tone, photoUrl } = body;
 
+    // Safety check for required fields
     if (!recipientName || !senderName || !traits) {
       return NextResponse.json({ error: "Dearly | Missing required fields" }, { status: 400 });
     }
@@ -28,31 +29,34 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         let fullMessage = "";
         
-        
+        // 1. Send ID first so frontend knows the URL
         controller.enqueue(encoder.encode(JSON.stringify({ id }) + "\n"));
 
+        // 2. Stream the AI text chunks
         for await (const chunk of stream) {
           const chunkText = chunk.text();
           fullMessage += chunkText;
           controller.enqueue(encoder.encode(chunkText));
         }
 
-        
-        supabase.from("greetings").insert({
-          id,
+        // 3. Save to Supabase using the exact column names from your screenshot
+        const { error } = await supabase.from("greetings").insert({
+          id: id,
           recipient_name: recipientName,
           sender_name: senderName,
-          relationship,
-          occasion,
-          traits,
-          hobbies,
-          tone,
-          message: fullMessage,
+          relationship: relationship || "Special Person",
+          occasion: occasion || "Celebration", // Ensure this isn't empty!
+          traits: traits,
+          hobbies: hobbies || "None",
+          tone: tone || "dearly",
+          message: fullMessage, // This is the generated AI text
           photo_url: photoUrl || null,
           created_at: new Date().toISOString(),
-        }).then(({ error }) => {
-          if (error) console.error("Dearly Background Error:", error);
         });
+
+        if (error) {
+          console.error("Dearly Database Error:", error.message);
+        }
 
         controller.close();
       },
