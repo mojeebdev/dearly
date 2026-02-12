@@ -3,7 +3,6 @@ import { nanoid } from "nanoid";
 import { streamMessage } from "@/lib/gemini"; 
 import { supabase } from "../../../lib/supabase";
 
-
 export const runtime = "edge"; 
 
 export async function POST(req: NextRequest) {
@@ -20,6 +19,7 @@ export async function POST(req: NextRequest) {
       photoUrl 
     } = body;
 
+    
     if (!recipientName || !senderName || !occasion) {
       return NextResponse.json({ error: "Dearly | Missing fields" }, { status: 400 });
     }
@@ -40,15 +40,19 @@ export async function POST(req: NextRequest) {
     const customStream = new ReadableStream({
       async start(controller) {
         let fullMessage = "";
+        
+        
         controller.enqueue(encoder.encode(JSON.stringify({ id }) + "\n"));
 
         try {
+          
           for await (const chunk of stream) {
             const chunkText = chunk.text();
             fullMessage += chunkText;
             controller.enqueue(encoder.encode(chunkText));
           }
 
+          
           await supabase.from("greetings").insert({
             id: id,
             recipient_name: recipientName,
@@ -62,6 +66,7 @@ export async function POST(req: NextRequest) {
             photo_url: photoUrl || null,
             created_at: new Date().toISOString(),
           });
+
         } catch (streamErr) {
           console.error("Streaming error:", streamErr);
         } finally {
@@ -71,7 +76,10 @@ export async function POST(req: NextRequest) {
     });
 
     return new Response(customStream, {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      headers: { 
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+      },
     });
 
   } catch (err) {

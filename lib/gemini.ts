@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -24,12 +24,31 @@ export async function streamMessage(params: GenerateParams) {
   } = params;
 
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
+    model: "gemini-1.5-flash", 
     generationConfig: {
       temperature: 1.0,
       topP: 0.95,
       maxOutputTokens: 1000,
-    }
+    },
+    
+    safetySettings: [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+    ],
   });
 
   const toneGuide: Record<string, string> = {
@@ -56,7 +75,6 @@ RULES:
 5. End with a warm sign-off from ${senderName}.
 6. Just the message body.`;
 
-  
   const result = await model.generateContentStream(prompt);
   return result.stream;
 }
