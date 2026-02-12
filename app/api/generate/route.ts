@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { streamMessage } from "@/lib/gemini"; 
 import { supabase } from "@/lib/supabase";
 
-
+// Standard Node.js runtime for stability (allows for 30s+ processing)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -18,11 +18,14 @@ export async function POST(req: NextRequest) {
       photoUrl 
     } = body;
 
+    
     if (!recipientName || !senderName || !occasion) {
       return NextResponse.json({ error: "Dearly | Missing fields" }, { status: 400 });
     }
 
     const id = nanoid(8);
+    
+    
     const stream = await streamMessage({
       recipientName,
       senderName,
@@ -39,7 +42,7 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         let fullMessage = "";
         
-    
+        // Immediate metadata for the frontend to handle the 30s wait
         controller.enqueue(encoder.encode(JSON.stringify({ 
           id, 
           status: "Patiently creating your beautiful message...",
@@ -50,9 +53,11 @@ export async function POST(req: NextRequest) {
           for await (const chunk of stream) {
             const chunkText = chunk.text();
             fullMessage += chunkText;
+            
             controller.enqueue(encoder.encode(chunkText));
           }
 
+          
           await supabase.from("greetings").insert({
             id: id,
             recipient_name: recipientName,
@@ -66,8 +71,9 @@ export async function POST(req: NextRequest) {
             photo_url: photoUrl || null,
             created_at: new Date().toISOString(),
           });
+          
         } catch (streamErr) {
-          console.error("Streaming error:", streamErr);
+          console.error("Streaming error inside ReadableStream:", streamErr);
         } finally {
           controller.close();
         }
