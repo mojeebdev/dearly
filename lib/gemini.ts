@@ -12,7 +12,7 @@ interface GenerateParams {
   tone: string;
 }
 
-// Ensure the word 'export' is right here!
+
 export async function streamMessage(params: GenerateParams) {
   const { recipientName, senderName, relationship, occasion, traits, hobbies, tone } = params;
 
@@ -31,7 +31,9 @@ export async function streamMessage(params: GenerateParams) {
     ],
   });
 
-  const prompt = `Write a ${occasion} message for ${recipientName} from ${senderName}. Tone: ${tone}.`;
+  const prompt = `Write a ${occasion} message for ${recipientName} from ${senderName}. 
+  Tone: ${tone}. Relationship: ${relationship}. Traits: ${traits}. Hobbies: ${hobbies}.`;
+  
   const result = await model.generateContentStream(prompt);
   return result.stream;
 }
