@@ -3,13 +3,24 @@ import { nanoid } from "nanoid";
 import { streamMessage } from "@/lib/gemini"; 
 import { supabase } from "../../../lib/supabase";
 
+export const runtime = "edge"; // Recommended for streaming
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { recipientName, senderName, relationship, occasion, traits, hobbies, tone, photoUrl } = body;
+    const { 
+      recipientName, 
+      senderName, 
+      relationship, 
+      occasion, 
+      traits, 
+      hobbies, 
+      tone, 
+      photoUrl 
+    } = body;
 
-    // Safety check for required fields
-    if (!recipientName || !senderName || !traits) {
+    // Guardian Check: Ensure required fields match your Non-Nullable DB columns
+    if (!recipientName || !senderName || !occasion) {
       return NextResponse.json({ error: "Dearly | Missing required fields" }, { status: 400 });
     }
 
@@ -18,47 +29,54 @@ export async function POST(req: NextRequest) {
       recipientName,
       senderName,
       relationship: relationship || "someone special",
-      occasion: occasion || "a special moment",
-      traits,
-      hobbies: hobbies || "their unique passions",
+      occasion: occasion,
+      traits: traits || "wonderful",
+      hobbies: hobbies || "life",
       tone: tone || "dearly",
     });
 
     const encoder = new TextEncoder();
+    
     const customStream = new ReadableStream({
       async start(controller) {
         let fullMessage = "";
         
-        // 1. Send ID first so frontend knows the URL
+        // 1. Send ID first so the frontend can prepare the share link
         controller.enqueue(encoder.encode(JSON.stringify({ id }) + "\n"));
 
-        // 2. Stream the AI text chunks
-        for await (const chunk of stream) {
-          const chunkText = chunk.text();
-          fullMessage += chunkText;
-          controller.enqueue(encoder.encode(chunkText));
+        try {
+          // 2. Stream the message from Gemini
+          for await (const chunk of stream) {
+            const chunkText = chunk.text();
+            fullMessage += chunkText;
+            controller.enqueue(encoder.encode(chunkText));
+          }
+
+          // 3. Save to Supabase AFTER the message is fully generated
+          // Keys match your screenshot (e.g., recipient_name, photo_url)
+          const { error: sbError } = await supabase.from("greetings").insert({
+            id: id,
+            recipient_name: recipientName,
+            sender_name: senderName,
+            relationship: relationship || "Special Person",
+            occasion: occasion,
+            traits: traits || "Kind",
+            hobbies: hobbies || "",
+            tone: tone || "sincere",
+            message: fullMessage, 
+            photo_url: photoUrl || null,
+            created_at: new Date().toISOString(),
+          });
+
+          if (sbError) {
+            console.error("Dearly DB Error:", sbError.message);
+          }
+
+        } catch (streamErr) {
+          console.error("Streaming error:", streamErr);
+        } finally {
+          controller.close();
         }
-
-        // 3. Save to Supabase using the exact column names from your screenshot
-        const { error } = await supabase.from("greetings").insert({
-          id: id,
-          recipient_name: recipientName,
-          sender_name: senderName,
-          relationship: relationship || "Special Person",
-          occasion: occasion || "Celebration", // Ensure this isn't empty!
-          traits: traits,
-          hobbies: hobbies || "None",
-          tone: tone || "dearly",
-          message: fullMessage, // This is the generated AI text
-          photo_url: photoUrl || null,
-          created_at: new Date().toISOString(),
-        });
-
-        if (error) {
-          console.error("Dearly Database Error:", error.message);
-        }
-
-        controller.close();
       },
     });
 
