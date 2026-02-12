@@ -41,12 +41,12 @@ export default function PhotoUpload({ onUpload, currentUrl }: PhotoUploadProps) 
           body: formData,
         });
 
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) throw new Error("Dearly, Upload failed");
 
         const { url } = await res.json();
         onUpload(url);
       } catch (err) {
-        setError("Upload failed. Please try again.");
+        setError("Dearly, Upload failed. Please try again.");
         setPreview(null);
       } finally {
         setUploading(false);

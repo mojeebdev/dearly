@@ -51,20 +51,7 @@ export default function HomePage() {
           <CreateForm />
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-guardian-goldLight/20 py-8 text-center text-sm text-guardian-muted/40">
-        Made with <Heart className="w-3 h-3 inline text-guardian-rose" fill="currentColor" /> by{" "}
-        <a 
-          href="https://mojeeb.xyz" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="hover:text-guardian-gold transition-colors font-medium"
-        >
-          Mojeeb
-        </a> · {new Date().getFullYear()}
-        <p className="text-sm text-guardian-muted/60">  dearly.icu — <em>I see you</em> ✨</p>
-      </footer>
+      
     </div>
   );
 }

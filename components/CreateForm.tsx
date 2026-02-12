@@ -58,12 +58,43 @@ export default function CreateForm() {
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) throw new Error("Generation failed | Dearly");
+      if (!res.ok) throw new Error("Dearly, Generation failed");
 
-      const { id } = await res.json();
-      router.push(`/g/${id}`);
+      
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error(" Dearly, Connection failed");
+
+      const decoder = new TextDecoder();
+      let isFirstChunk = true;
+      let finalId = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const textChunk = decoder.decode(value);
+
+        
+        if (isFirstChunk) {
+          try {
+            const firstLine = textChunk.split("\n")[0];
+            const data = JSON.parse(firstLine);
+            finalId = data.id;
+            isFirstChunk = false;
+          } catch (parseError) {
+            console.error("Stream ID parse error:", parseError);
+          }
+        }
+      }
+
+      if (finalId) {
+        router.push(`/g/${finalId}`);
+      } else {
+        throw new Error("Daerly, Missing ID");
+      }
     } catch (err) {
-      alert("Something went wrong. Please try again. | Dearly");
+      console.error(err);
+      alert("Dearly, Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -156,7 +187,7 @@ export default function CreateForm() {
         </label>
         <input
           type="text"
-          placeholder="e.g., partner, best friend, mom, colleague"
+          placeholder="e.g., sibling, partner, best friend, mom, colleague"
           value={form.relationship}
           onChange={(e) => update("relationship", e.target.value)}
           className="guardian-input"

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./global.css";
-
+import { Heart } from "lucide-react";
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -113,11 +113,18 @@ export default function RootLayout({
         </main>
 
         {/* --- BRANDING FOOTER --- */}
-        <footer className="py-8 text-center border-t border-guardian-muted/10">
-          <p className="text-sm text-guardian-muted/60">
-            dearly.icu — <em>I see you</em> ✨
-          </p>
-        </footer>
+        <footer className="border-t border-guardian-goldLight/20 py-8 text-center text-sm text-guardian-muted/40">
+        Made with <Heart className="w-3 h-3 inline text-guardian-rose" fill="currentColor" /> by{" "}
+        <a 
+          href="https://mojeeb.xyz" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="hover:text-guardian-gold transition-colors font-medium"
+        >
+          Mojeeb
+        </a> · {new Date().getFullYear()}
+        <p className="text-sm text-guardian-muted/60">  dearly.icu — <em>I see you</em> ✨</p>
+      </footer>
       </body>
     </html>
   );
