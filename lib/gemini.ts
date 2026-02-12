@@ -16,7 +16,7 @@ export async function streamMessage(params: GenerateParams) {
   const { recipientName, senderName, relationship, occasion, traits, hobbies, tone } = params;
 
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash", 
+    model: "gemini-2.0-flash", 
     generationConfig: {
       temperature: 1.0,
       topP: 0.95,
@@ -30,7 +30,6 @@ export async function streamMessage(params: GenerateParams) {
     ],
   });
 
-  
   const toneGuide: Record<string, string> = {
     dearly: "deeply sincere, warm, emotionally moving — like a handwritten letter",
     romantic: "poetic, intimate, tender — like a love letter under moonlight",
@@ -38,23 +37,11 @@ export async function streamMessage(params: GenerateParams) {
     inspirational: "uplifting, empowering, celebratory — like a mentor's speech",
   };
 
-  
-  const prompt = `You are a world-class creative writer specializing in personal, bespoke messages.
-Write a ${occasion} message for **${recipientName}** from **${senderName}**.
-
-CONTEXT:
-- Relationship: ${relationship}
-- ${recipientName}'s traits: ${traits}
-- ${recipientName}'s hobbies/interests: ${hobbies}
-- Desired tone: ${tone} — ${toneGuide[tone] || toneGuide.dearly}
-
-RULES:
-1. Address ${recipientName} directly and personally.
-2. Weave in specific details about their traits and hobbies naturally.
-3. Keep it between 120-200 words.
-4. Use elegant formatting (line breaks for readability).
-5. End with a warm sign-off from ${senderName}.
-6. Return JUST the message body.`;
+  const prompt = `You are a world-class creative writer. 
+Write a ${occasion} message for ${recipientName} from ${senderName}.
+Tone: ${tone} — ${toneGuide[tone] || toneGuide.dearly}.
+Relationship: ${relationship}. Traits: ${traits}. Hobbies: ${hobbies}.
+Rules: Address them directly, be elegant, 120-200 words, warm sign-off.`;
   
   const result = await model.generateContentStream(prompt);
   return result.stream;
