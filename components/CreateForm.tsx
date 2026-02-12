@@ -264,7 +264,7 @@ export default function CreateForm() {
           {loading ? "Crafting your message..." : "✨ Create Greeting"}
         </Button>
         <p className="text-center text-xs text-guardian-muted/50 mt-3">
-          Takes about 5 seconds · Free · No sign-up required
+          Takes about 30 seconds · Free · No sign-up required
         </p>
       </motion.div>
     </motion.form>
