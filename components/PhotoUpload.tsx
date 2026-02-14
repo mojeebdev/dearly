@@ -19,7 +19,7 @@ export default function PhotoUpload({ onUpload, currentUrl }: PhotoUploadProps) 
       const file = acceptedFiles[0];
       if (!file) return;
 
-      // Validate size
+      
       if (file.size > 5 * 1024 * 1024) {
         setError("Photo must be under 5MB");
         return;
@@ -28,7 +28,7 @@ export default function PhotoUpload({ onUpload, currentUrl }: PhotoUploadProps) 
       setError(null);
       setUploading(true);
 
-      // Show local preview immediately
+      
       const localPreview = URL.createObjectURL(file);
       setPreview(localPreview);
 

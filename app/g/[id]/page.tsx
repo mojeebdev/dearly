@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const emoji = getOccasionEmoji(greeting.occasion);
   const title = `${emoji} A Special Message for ${greeting.recipient_name}`;
   const description = `A heartfelt ${greeting.occasion} greeting from ${greeting.sender_name}.`;
-  // Fallback to production URL if env is missing
+  
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://dearly.icu";
   const url = `${baseUrl}/g/${id}`;
 
@@ -36,7 +36,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url,
       siteName: "Dearly",
-      // Using the user's uploaded photo as the WhatsApp preview image!
       images: greeting.photo_url ? [{ url: greeting.photo_url, width: 800, height: 800 }] : [],
       type: "website",
     },
@@ -62,7 +61,7 @@ export default async function GreetingLandingPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fire-and-forget view count update
+  
   supabase
     .from("greetings")
     .update({ view_count: (greeting.view_count || 0) + 1 })

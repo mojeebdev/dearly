@@ -31,7 +31,7 @@ export default function ShareButtons({
     setMounted(true);
   }, []);
 
-  // Safety check: if no URL, use the production domain
+  
   const finalUrl = url || "https://dearly.icu";
   const shareText = `I made something special for ${recipientName} on Dearly ✨`;
 
@@ -66,7 +66,7 @@ export default function ShareButtons({
           url: finalUrl,
         });
       } catch (err) {
-        // User cancelled
+       
       }
     }
   };

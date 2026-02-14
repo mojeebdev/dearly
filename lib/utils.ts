@@ -5,13 +5,13 @@ export function getOccasionEmoji(occasion: string): string {
     anniversary: "💍",
     appreciation: "🌟",
     friendship: "🤝",
-    graduation: "🎓", // Perfect for the Student persona
-    success: "🏆",    // Great for the Gym Goer or Tech Entrepreneur
+    graduation: "🎓", 
+    success: "🏆",    
     get_well: "🌸",
     other: "✨",
   };
   
-  // Normalize the occasion string to lowercase to prevent errors
+  
   const key = occasion?.toLowerCase();
   return map[key] || "✨";
 }

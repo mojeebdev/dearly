@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { streamMessage } from "../../../lib/gemini"; 
 import { supabase } from "../../../lib/supabase";
 
-// Standard Node.js runtime for stability (allows for 30s+ processing)
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         let fullMessage = "";
         
-        // Immediate metadata for the frontend to handle the 30s wait
+        
         controller.enqueue(encoder.encode(JSON.stringify({ 
           id, 
           status: "Patiently creating your beautiful message...",
-          info: "Takes about 30 seconds · Free · No sign-up required" 
+          info: "Takes about 15 seconds · Free · No sign-up required" 
         }) + "\n"));
 
         try {

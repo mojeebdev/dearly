@@ -40,7 +40,7 @@ export default function Confetti({ occasion }: ConfettiProps) {
         };
         frame();
       } else {
-        // Default: gentle sparkle
+        
         confetti({
           particleCount: 50,
           spread: 60,

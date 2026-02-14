@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Fix: Changed supabaseAdmin to supabase
+    
     const { error: uploadError } = await supabase.storage
       .from("photos")
       .upload(fileName, buffer, {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fix: Changed supabaseAdmin to supabase
+    
     const {
       data: { publicUrl },
     } = supabase.storage.from("photos").getPublicUrl(fileName);
