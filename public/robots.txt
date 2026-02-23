@@ -1,0 +1,7 @@
+# robots.txt for Dearly (https://dearly.icu)
+
+User-agent: *
+Allow: /
+
+# Sitemaps to help indexing
+Sitemap: https://dearly.icu/sitemap.xml
