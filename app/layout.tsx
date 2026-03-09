@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./global.css";
 import { Heart } from "lucide-react";
+import { Analytics } from "@vercel/analytics/next"
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -125,6 +126,7 @@ export default function RootLayout({
         </a> · {new Date().getFullYear()}
         <p className="text-sm text-guardian-muted/60">  dearly.icu — <em>I see you</em> ✨</p>
       </footer>
+      <Analytics/>
       </body>
     </html>
   );

@@ -3,5 +3,5 @@
 User-agent: *
 Allow: /
 
-# Sitemaps to help indexing
+
 Sitemap: https://dearly.icu/sitemap.xml
