@@ -107,6 +107,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <script defer src="https://cloud.umami.is/script.js" data-website-id="f8a94107-fe58-4980-b918-ad08b22daf17"></script>
       </head>
       <body className="flex flex-col min-h-screen font-sans antialiased bg-guardian-cream text-guardian-deep">
         <main className="flex-grow">
