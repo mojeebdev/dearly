@@ -5,7 +5,7 @@ import GreetingPage from "@/components/GreetingPage";
 import { getOccasionEmoji } from "@/lib/utils";
 
 interface PageProps {
-  // Changed id to slug
+  
   params: Promise<{ slug: string }>;
 }
 
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { data: greeting } = await supabase
     .from("greetings")
     .select("recipient_name, occasion, sender_name, photo_url")
-    .eq("slug", slug) // Query by slug
+    .eq("slug", slug) 
     .single();
 
   if (!greeting) {
@@ -27,8 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = `A heartfelt ${greeting.occasion} greeting from ${greeting.sender_name}.`;
   
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://dearly.icu";
-  const url = `${baseUrl}/g/${slug}`; // URL now uses slug
-
+  const url = `${baseUrl}/g/${slug}`; 
   return {
     title,
     description,
@@ -52,21 +51,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function GreetingLandingPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const { data: greeting, error } = await supabase
+  
+  let { data: greeting, error } = await supabase
     .from("greetings")
     .select("*")
-    .eq("slug", slug) // Query by slug
+    .eq("slug", slug)
     .single();
 
-  if (error || !greeting) {
-    notFound();
+  
+  if (!greeting || error) {
+    const { data: backupGreeting, error: backupError } = await supabase
+      .from("greetings")
+      .select("*")
+      .eq("id", slug) 
+      .single();
+
+    if (backupError || !backupGreeting) {
+      notFound();
+    }
+    
+    greeting = backupGreeting;
   }
 
-  // Update view count using the unique slug
+  
   supabase
     .from("greetings")
     .update({ view_count: (greeting.view_count || 0) + 1 })
-    .eq("slug", slug)
+    .eq("id", greeting.id)
     .then();
 
   return (
