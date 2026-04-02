@@ -5,8 +5,10 @@ import { Heart, Calendar, Sparkles } from "lucide-react";
 import ShareButtons from "./ShareButtons";
 import Confetti from "./Confetti";
 import { getOccasionEmoji, getOccasionGradient } from "../lib/utils";
+
 interface Greeting {
   id: string;
+  slug?: string | null;
   recipient_name: string;
   sender_name: string;
   relationship: string;
@@ -14,11 +16,13 @@ interface Greeting {
   message: string;
   photo_url: string | null;
   created_at: string;
+  view_count?: number;
 }
 
 export default function GreetingPage({ greeting }: { greeting: Greeting }) {
   const {
     id,
+    slug,
     recipient_name,
     sender_name,
     occasion,
@@ -28,7 +32,9 @@ export default function GreetingPage({ greeting }: { greeting: Greeting }) {
   } = greeting;
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://dearly.icu";
-  const shareUrl = `${baseUrl}/g/${id}`;
+  // Use slug for new records, fall back to id for old ones
+  const shareUrl = `${baseUrl}/g/${slug ?? id}`;
+
   const emoji = getOccasionEmoji(occasion);
   const gradient = getOccasionGradient(occasion);
   const formattedDate = new Date(created_at).toLocaleDateString("en-US", {
@@ -112,7 +118,6 @@ export default function GreetingPage({ greeting }: { greeting: Greeting }) {
                            shadow-2xl shadow-guardian-gold/10
                            border-4 border-white/80"
               />
-              {/* Decorative corner hearts */}
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
@@ -131,22 +136,18 @@ export default function GreetingPage({ greeting }: { greeting: Greeting }) {
           transition={{ delay: 0.6, duration: 0.8 }}
           className="guardian-card p-8 sm:p-12 mb-12 animate-glow"
         >
-          {/* Decorative quote mark */}
           <div className="text-6xl text-guardian-goldLight/40 font-serif leading-none mb-4">
             "
           </div>
 
-          {/* The AI-generated message */}
           <div className="font-serif text-lg sm:text-xl leading-relaxed text-guardian-deep/90 whitespace-pre-line">
             {message}
           </div>
 
-          {/* Closing quote */}
           <div className="text-6xl text-guardian-goldLight/40 font-serif leading-none text-right mt-4">
             "
           </div>
 
-          {/* Sender attribution */}
           <div className="mt-8 pt-6 border-t border-guardian-goldLight/20 flex items-center justify-between">
             <div className="flex items-center gap-2 text-guardian-muted">
               <Heart className="w-4 h-4 text-guardian-rose" fill="currentColor" />

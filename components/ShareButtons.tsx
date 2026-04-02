@@ -12,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 
+const CloseIcon = X;
+
 interface ShareButtonsProps {
   url: string;
   recipientName: string;
@@ -31,7 +33,6 @@ export default function ShareButtons({
     setMounted(true);
   }, []);
 
-  
   const finalUrl = url || "https://dearly.icu";
   const shareText = `I made something special for ${recipientName} on Dearly ✨`;
 
@@ -66,7 +67,7 @@ export default function ShareButtons({
           url: finalUrl,
         });
       } catch (err) {
-       
+        // User cancelled share — safe to ignore
       }
     }
   };
@@ -169,7 +170,7 @@ export default function ShareButtons({
                 onClick={() => setShowQR(false)}
                 className="absolute top-3 right-3 p-1 hover:bg-gray-100 rounded-full"
               >
-                <X className="w-4 h-4" />
+                <CloseIcon className="w-4 h-4" />
               </button>
               <p className="text-sm text-guardian-muted mb-4">
                 Scan to open the greeting
