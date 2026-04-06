@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import GreetingPage from "@/components/GreetingPage";
 import { getOccasionEmoji } from "@/lib/utils";
@@ -55,26 +55,46 @@ export default async function GreetingLandingPage({ params }: PageProps) {
   const { occasion, name } = await params;
   const slug = `${occasion}/${name}`;
 
-  // Try slug first (new format: occasion/name)
+  // 1. Try slug first (new format: occasion/name)
   let { data: greeting } = await supabase
     .from("greetings")
     .select("*")
     .eq("slug", slug)
     .single();
 
-  // Fall back to id for old records
+  // 2. Fall back: `occasion` segment might be a UUID (old links: /g/<uuid>/anything)
   if (!greeting) {
-    const { data: backupGreeting } = await supabase
+    const { data: byOccasionId } = await supabase
+      .from("greetings")
+      .select("*")
+      .eq("id", occasion)
+      .single();
+
+    if (byOccasionId?.slug) {
+      redirect(`/g/${byOccasionId.slug}`);
+    }
+
+    greeting = byOccasionId ?? null;
+  }
+
+  // 3. Fall back: `name` segment might be a UUID (old links: /g/someoccasion/<uuid>)
+  if (!greeting) {
+    const { data: byNameId } = await supabase
       .from("greetings")
       .select("*")
       .eq("id", name)
       .single();
 
-    if (!backupGreeting) notFound();
-    greeting = backupGreeting;
+    if (byNameId?.slug) {
+      redirect(`/g/${byNameId.slug}`);
+    }
+
+    greeting = byNameId ?? null;
   }
 
-  // Fire-and-forget view count
+  if (!greeting) notFound();
+
+  // Fire-and-forget view count increment
   supabase
     .from("greetings")
     .update({ view_count: (greeting.view_count || 0) + 1 })
