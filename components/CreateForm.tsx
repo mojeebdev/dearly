@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart,
   Sparkles,
@@ -33,6 +33,7 @@ const tones = [
 export default function CreateForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [customOccasion, setCustomOccasion] = useState("");
   const [form, setForm] = useState({
     recipientName: "",
     senderName: "",
@@ -47,25 +48,33 @@ export default function CreateForm() {
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
+  const isCustomOccasion = form.occasion === "other";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Use custom occasion text if "Just Because" is selected
+    const finalOccasion =
+      isCustomOccasion && customOccasion.trim()
+        ? customOccasion.trim()
+        : form.occasion;
 
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, occasion: finalOccasion }),
       });
 
       if (!res.ok) throw new Error("Dearly, Generation failed");
 
-      
       const reader = res.body?.getReader();
-      if (!reader) throw new Error(" Dearly, Connection failed");
+      if (!reader) throw new Error("Dearly, Connection failed");
 
       const decoder = new TextDecoder();
       let isFirstChunk = true;
+      let finalSlug = "";
       let finalId = "";
 
       while (true) {
@@ -74,23 +83,24 @@ export default function CreateForm() {
 
         const textChunk = decoder.decode(value);
 
-        
         if (isFirstChunk) {
           try {
             const firstLine = textChunk.split("\n")[0];
             const data = JSON.parse(firstLine);
+            finalSlug = data.slug;
             finalId = data.id;
             isFirstChunk = false;
           } catch (parseError) {
-            console.error("Stream ID parse error:", parseError);
+            console.error("Stream parse error:", parseError);
           }
         }
       }
 
-      if (finalId) {
-        router.push(`/g/${finalId}`);
+      const destination = finalSlug || finalId;
+      if (destination) {
+        router.push(`/g/${destination}`);
       } else {
-        throw new Error("Daerly, Missing ID");
+        throw new Error("Dearly, Missing ID");
       }
     } catch (err) {
       console.error(err);
@@ -145,6 +155,27 @@ export default function CreateForm() {
             </button>
           ))}
         </div>
+
+        {/* Custom occasion input — appears when Just Because is selected */}
+        <AnimatePresence>
+          {isCustomOccasion && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <input
+                type="text"
+                placeholder="What's the occasion? e.g., promotion, new home, just love them..."
+                value={customOccasion}
+                onChange={(e) => setCustomOccasion(e.target.value)}
+                className="guardian-input mt-2"
+                autoFocus
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Names Row */}
