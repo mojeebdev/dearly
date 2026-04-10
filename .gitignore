@@ -2,3 +2,4 @@
 .next/
 .env
 .env.localgit remote -v
+.env.local
