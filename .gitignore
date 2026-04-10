@@ -1,5 +1,4 @@
 ﻿node_modules/
 .next/
 .env
-.env.localgit remote -v
 .env.local
