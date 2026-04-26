@@ -11,11 +11,12 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
 
+  // Use .maybeSingle() to prevent the app from crashing if not found
   const { data: greeting } = await supabase
     .from("greetings")
     .select("recipient_name, occasion, sender_name, photo_url")
-    .eq("slug", slug)
-    .single();
+    .ilike("slug", slug) // Case-insensitive match
+    .maybeSingle();
 
   if (!greeting) {
     return { title: "Greeting Not Found | Dearly" };
@@ -35,16 +36,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url,
       siteName: "Dearly",
-      images: greeting.photo_url
-        ? [{ url: greeting.photo_url, width: 800, height: 800 }]
-        : [],
+      images: greeting.photo_url ? [{ url: greeting.photo_url, width: 800, height: 800 }] : [],
       type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: greeting.photo_url ? [greeting.photo_url] : [],
     },
   };
 }
@@ -52,35 +45,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function GreetingLandingPage({ params }: PageProps) {
   const { slug } = await params;
 
-  // 1. Try clean slug (e.g. /g/dorcas)
+  // 1. Try finding by SLUG first (Case-Insensitive)
   let { data: greeting } = await supabase
     .from("greetings")
     .select("*")
-    .eq("slug", slug)
-    .single();
+    .ilike("slug", slug)
+    .maybeSingle();
 
-  // 2. Fall back: slug might be a short ID (e.g. /g/w1sbQq93)
+  // 2. Fallback: Check if the slug provided is actually an ID
   if (!greeting) {
     const { data: byId } = await supabase
       .from("greetings")
       .select("*")
       .eq("id", slug)
-      .single();
+      .maybeSingle();
 
-    if (byId?.slug) {
-      redirect(`/g/${byId.slug}`);
+    if (byId) {
+      // If we found it by ID and it has a slug, redirect to the clean URL
+      if (byId.slug) {
+        redirect(`/g/${byId.slug}`);
+      }
+      greeting = byId;
     }
-
-    greeting = byId ?? null;
   }
 
-  if (!greeting) notFound();
+  // 3. Final 404 check
+  if (!greeting) {
+    notFound();
+  }
 
-  // Fire-and-forget view count
+  // Fire-and-forget view count update
+  // We don't 'await' this so the page loads faster for the user
   supabase
-    .from("greetings")
-    .update({ view_count: (greeting.view_count || 0) + 1 })
-    .eq("id", greeting.id)
+    .rpc('increment_view_count', { row_id: greeting.id }) 
+    // Note: It's better to use a DB function for increments to avoid race conditions
     .then();
 
   return <GreetingPage greeting={greeting} />;
