@@ -1,40 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { nanoid } from "nanoid";
 import { streamMessage } from "../../../lib/gemini";
 import { supabase } from "../../../lib/supabase";
-
-function toSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-");
-}
-
-async function generateUniqueSlug(baseName: string): Promise<string> {
-  const base = toSlug(baseName);
-
-  const { data: existing } = await supabase
-    .from("greetings")
-    .select("slug")
-    .eq("slug", base)
-    .single();
-
-  if (!existing) return base;
-
-  let counter = 2;
-  while (true) {
-    const candidate = `${base}-${counter}`;
-    const { data } = await supabase
-      .from("greetings")
-      .select("slug")
-      .eq("slug", candidate)
-      .single();
-
-    if (!data) return candidate;
-    counter++;
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,9 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Dearly | Missing fields" }, { status: 400 });
     }
 
-    const id = nanoid(8);
-    const slug = await generateUniqueSlug(recipientName);
-
+    
     const stream = await streamMessage({
       recipientName,
       senderName,
@@ -73,11 +37,10 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         let fullMessage = "";
 
+        
         controller.enqueue(
           encoder.encode(
             JSON.stringify({
-              id,
-              slug,
               status: "Patiently creating your beautiful message...",
               info: "Takes about 15 seconds · Free · No sign-up required",
             }) + "\n"
@@ -85,28 +48,45 @@ export async function POST(req: NextRequest) {
         );
 
         try {
+          
           for await (const chunk of stream) {
             const chunkText = chunk.text();
             fullMessage += chunkText;
             controller.enqueue(encoder.encode(chunkText));
           }
 
-          await supabase.from("greetings").insert({
-            id,
-            slug,
-            recipient_name: recipientName,
-            sender_name: senderName,
-            relationship: relationship || "Special Person",
-            occasion,
-            traits: traits || "Kind",
-            hobbies: hobbies || "",
-            tone: tone || "sincere",
-            message: fullMessage,
-            photo_url: photoUrl || null,
-            created_at: new Date().toISOString(),
-          });
-        } catch (streamErr) {
-          console.error("Streaming error inside ReadableStream:", streamErr);
+        
+          const { data: savedGreeting, error: dbError } = await supabase
+            .from("greetings")
+            .insert({
+              recipient_name: recipientName,
+              sender_name: senderName,
+              relationship: relationship || "Special Person",
+              occasion,
+              traits: traits || "Kind",
+              hobbies: hobbies || "",
+              tone: tone || "sincere",
+              message: fullMessage,
+              photo_url: photoUrl || null,
+            })
+            .select("slug, id")
+            .single();
+
+          if (dbError) throw dbError;
+
+          
+          controller.enqueue(
+            encoder.encode(
+              "\n" + JSON.stringify({
+                done: true,
+                slug: savedGreeting.slug,
+                id: savedGreeting.id
+              })
+            )
+          );
+
+        } catch (err) {
+          console.error("Internal stream/save error:", err);
         } finally {
           controller.close();
         }
@@ -117,7 +97,6 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
       },
     });
   } catch (err) {
