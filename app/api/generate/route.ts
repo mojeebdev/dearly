@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Dearly | Missing fields" }, { status: 400 });
     }
 
-    // Initialize the AI stream from Gemini
+    
     const stream = await streamMessage({
       recipientName,
       senderName,
@@ -38,33 +38,19 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         let fullMessage = "";
 
-        // Send initial status to the UI
-        controller.enqueue(
-          encoder.encode(
-            JSON.stringify({
-              status: "Patiently creating your beautiful message...",
-              info: "Takes about 15 seconds · Free · No sign-up required",
-            }) + "\n"
-          )
-        );
-
         try {
-          // Stream the text chunks to the frontend as they arrive
+          
           for await (const chunk of stream) {
             const chunkText = chunk.text();
             fullMessage += chunkText;
             controller.enqueue(encoder.encode(chunkText));
           }
 
-          /** 
-           * SAVE TO DATABASE 
-           * We send 'id' to satisfy the DB constraint.
-           * We DO NOT send 'slug' so the Trigger creates a clean one (e.g. 'fateemah').
-           */
+          
           const { data: savedGreeting, error: dbError } = await supabase
             .from("greetings")
             .insert({
-              id: nanoid(8), 
+              id: nanoid(8),
               recipient_name: recipientName,
               sender_name: senderName,
               relationship: relationship || "Special Person",
@@ -75,24 +61,26 @@ export async function POST(req: NextRequest) {
               message: fullMessage,
               photo_url: photoUrl || null,
             })
-            .select("slug") 
+            .select("id, slug")
             .single();
 
           if (dbError) throw dbError;
 
-          // Send the final clean slug back to the client for redirecting
+          
           controller.enqueue(
             encoder.encode(
-              "\n" + JSON.stringify({
-                done: true,
-                slug: savedGreeting.slug,
-              })
+              "\n__META__" +
+                JSON.stringify({
+                  slug: savedGreeting.slug,
+                  id: savedGreeting.id,
+                })
             )
           );
-
         } catch (err) {
           console.error("Internal stream/save error:", err);
-          controller.enqueue(encoder.encode("\n" + JSON.stringify({ error: "Database save failed" })));
+          controller.enqueue(
+            encoder.encode("\n__META__" + JSON.stringify({ error: "Database save failed" }))
+          );
         } finally {
           controller.close();
         }

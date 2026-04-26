@@ -54,7 +54,7 @@ export default function CreateForm() {
     e.preventDefault();
     setLoading(true);
 
-    // Use custom occasion text if "Just Because" is selected
+    
     const finalOccasion =
       isCustomOccasion && customOccasion.trim()
         ? customOccasion.trim()
@@ -73,7 +73,7 @@ export default function CreateForm() {
       if (!reader) throw new Error("Dearly, Connection failed");
 
       const decoder = new TextDecoder();
-      let isFirstChunk = true;
+      let buffer = "";
       let finalSlug = "";
       let finalId = "";
 
@@ -81,18 +81,33 @@ export default function CreateForm() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const textChunk = decoder.decode(value);
+        // Accumulate all chunks into a buffer
+        buffer += decoder.decode(value, { stream: true });
 
-        if (isFirstChunk) {
+        // Look for our clearly-marked metadata line anywhere in the buffer
+        const metaIndex = buffer.indexOf("__META__");
+        if (metaIndex !== -1) {
           try {
-            const firstLine = textChunk.split("\n")[0];
-            const data = JSON.parse(firstLine);
-            finalSlug = data.slug;
-            finalId = data.id;
-            isFirstChunk = false;
-          } catch (parseError) {
-            console.error("Stream parse error:", parseError);
+            const metaJson = buffer.slice(metaIndex + "__META__".length);
+            const meta = JSON.parse(metaJson);
+            finalSlug = meta.slug || "";
+            finalId = meta.id || "";
+          } catch {
+           
           }
+        }
+      }
+
+      
+      const metaIndex = buffer.indexOf("__META__");
+      if (metaIndex !== -1 && !finalSlug && !finalId) {
+        try {
+          const metaJson = buffer.slice(metaIndex + "__META__".length);
+          const meta = JSON.parse(metaJson);
+          finalSlug = meta.slug || "";
+          finalId = meta.id || "";
+        } catch {
+          console.error("Final meta parse failed. Buffer tail:", buffer.slice(metaIndex));
         }
       }
 
@@ -100,7 +115,7 @@ export default function CreateForm() {
       if (destination) {
         router.push(`/g/${destination}`);
       } else {
-        throw new Error("Dearly, Missing ID");
+        throw new Error("Dearly, Missing redirect destination");
       }
     } catch (err) {
       console.error(err);
